@@ -14,12 +14,12 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { vocab } from "./vocab";
 
-
+const initialSections = vocab;
 
 const FlashcardApp = () => {
   const [sections, setSections] = useState(() => {
     const saved = localStorage.getItem("flashcards");
-    return saved ? JSON.parse(saved) : vocab;
+    return saved ? JSON.parse(saved) : initialSections;
   });
   const [currentSection, setCurrentSection] = useState(null);
   const [quizActive, setQuizActive] = useState(false);
@@ -31,8 +31,13 @@ const FlashcardApp = () => {
     return saved ? JSON.parse(saved) : false;
   });
   const [quizAnswers, setQuizAnswers] = useState({});
-  const [revealEnglish, setRevealEnglish] = useState(true);
-  const [revealSpanish, setRevealSpanish] = useState(false);
+  const [revealSettings, setRevealSettings] = useState(() => {
+    const initialSettings = {};
+    Object.entries(initialSections).forEach(([section]) => {
+      initialSettings[section] = { english: true, spanish: false };
+    });
+    return initialSettings;
+  });
   const [blurredCells, setBlurredCells] = useState(() => {
     const initialBlur = {};
     Object.entries(initialSections).forEach(([section, cards]) => {
@@ -40,7 +45,7 @@ const FlashcardApp = () => {
     });
     return initialBlur;
   });
-  const [viewMode, setViewMode] = useState("sections"); // Added mode switcher state
+  const [viewMode, setViewMode] = useState("sections"); // Mode switcher state
 
   useEffect(() => {
     localStorage.setItem("flashcards", JSON.stringify(sections));
@@ -91,12 +96,27 @@ const FlashcardApp = () => {
     reader.readAsText(file);
   };
 
-  const toggleBlurColumn = (column) => {
-    if (column === "english") {
-      setRevealEnglish((prev) => !prev);
-    } else if (column === "spanish") {
-      setRevealSpanish((prev) => !prev);
-    }
+  const toggleBlurColumn = (section, column) => {
+    setRevealSettings((prev) => ({
+      ...prev,
+      [section]: {
+        ...prev[section],
+        [column]: !prev[section][column],
+      },
+    }));
+  };
+
+  const toggleAllBlurColumn = (column) => {
+    setRevealSettings((prev) => {
+      const updatedSettings = {};
+      Object.keys(prev).forEach((section) => {
+        updatedSettings[section] = {
+          ...prev[section],
+          [column]: !prev[section][column],
+        };
+      });
+      return updatedSettings;
+    });
   };
 
   const toggleCellBlur = (section, index) => {
@@ -119,34 +139,50 @@ const FlashcardApp = () => {
       >
         Return to Sections View
       </Button>
+      <div className="flex space-x-4 mb-4">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => toggleAllBlurColumn("english")}
+        >
+          Toggle All English
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => toggleAllBlurColumn("spanish")}
+        >
+          Toggle All Spanish
+        </Button>
+      </div>
       {Object.entries(sections).map(([section, cards]) => (
         <div key={section} className="mb-8">
           <h2 className="text-lg font-semibold mb-4">{section}</h2>
+          <div className="flex space-x-2 mb-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => toggleBlurColumn(section, "english")}
+            >
+              {revealSettings[section].english
+                ? "Blur English"
+                : "Reveal English"}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => toggleBlurColumn(section, "spanish")}
+            >
+              {revealSettings[section].spanish
+                ? "Blur Spanish"
+                : "Reveal Spanish"}
+            </Button>
+          </div>
           <table className="min-w-full border-collapse border border-gray-300">
             <thead>
               <tr>
                 <th className="border border-gray-300 p-2">English</th>
                 <th className="border border-gray-300 p-2">Spanish</th>
-              </tr>
-              <tr>
-                <th className="border border-gray-300 p-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => toggleBlurColumn("english")}
-                  >
-                    {revealEnglish ? "Blur All" : "Reveal All"}
-                  </Button>
-                </th>
-                <th className="border border-gray-300 p-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => toggleBlurColumn("spanish")}
-                  >
-                    {revealSpanish ? "Blur All" : "Reveal All"}
-                  </Button>
-                </th>
               </tr>
             </thead>
             <tbody>
@@ -154,7 +190,8 @@ const FlashcardApp = () => {
                 <tr key={card.id}>
                   <td
                     className={`border border-gray-300 p-2 cursor-pointer ${
-                      revealEnglish || !blurredCells[section][index]
+                      revealSettings[section].english ||
+                      !blurredCells[section][index]
                         ? ""
                         : "blur-sm"
                     }`}
@@ -164,7 +201,8 @@ const FlashcardApp = () => {
                   </td>
                   <td
                     className={`border border-gray-300 p-2 cursor-pointer ${
-                      revealSpanish || !blurredCells[section][index]
+                      revealSettings[section].spanish ||
+                      !blurredCells[section][index]
                         ? ""
                         : "blur-sm"
                     }`}
@@ -191,12 +229,16 @@ const FlashcardApp = () => {
         transition={{ duration: 0.1 }}
         className="flex flex-col items-center justify-center min-h-screen p-4"
       >
-        <Button variant="outline" onClick={() => setViewMode("table")}>
-          Table View
-        </Button>
         <div className="flex justify-between w-full max-w-md mb-4 items-center">
           <h1 className="text-2xl font-bold">Flashcards</h1>
           <div className="flex space-x-2">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setViewMode("table")}
+            >
+              Table View
+            </Button>
             <Button variant="outline" size="icon" onClick={handleExport}>
               <Download className="h-4 w-4" />
             </Button>
