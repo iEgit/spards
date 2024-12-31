@@ -12,23 +12,14 @@ import {
   Languages,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { vocab } from "./vocab";
 
-const initialSections = {
-  Basics: [
-    { id: 1, english: "Hello", spanish: "Hola", learned: false },
-    { id: 2, english: "Goodbye", spanish: "Adiós", learned: false },
-    { id: 3, english: "Please", spanish: "Por favor", learned: false },
-  ],
-  Numbers: [
-    { id: 4, english: "One", spanish: "Uno", learned: false },
-    { id: 5, english: "Two", spanish: "Dos", learned: false },
-  ],
-};
+
 
 const FlashcardApp = () => {
   const [sections, setSections] = useState(() => {
     const saved = localStorage.getItem("flashcards");
-    return saved ? JSON.parse(saved) : initialSections;
+    return saved ? JSON.parse(saved) : vocab;
   });
   const [currentSection, setCurrentSection] = useState(null);
   const [quizActive, setQuizActive] = useState(false);
